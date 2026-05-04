@@ -11,6 +11,7 @@ SEED_URL = "https://quotes.toscrape.com/"
 POLITENESS_DELAY = 6
 REQUEST_TIMEOUT = 15
 USER_AGENT = "COMP3011-Crawler/0.1"
+SKIP_SUFFIXES = ("/login", "/logout")
 
 
 def fetch_page(url):
@@ -24,14 +25,28 @@ def fetch_page(url):
         return None
 
 
+def normalise(url):
+    """Collapse trivially equivalent URL variants."""
+    # /tag/foo/page/1/ is the same content as /tag/foo/
+    if url.endswith("/page/1/"):
+        url = url[: -len("page/1/")]
+    return url
+
+
 def extract_links(html, base_url, allowed_domain):
     soup = BeautifulSoup(html, "html.parser")
     found = set()
 
     for tag in soup.find_all("a", href=True):
         url = urljoin(base_url, tag["href"]).split("#", 1)[0]
-        if urlparse(url).netloc == allowed_domain:
-            found.add(url)
+        url = normalise(url)
+
+        if urlparse(url).netloc != allowed_domain:
+            continue
+        if any(url.rstrip("/").endswith(s) for s in SKIP_SUFFIXES):
+            continue
+
+        found.add(url)
 
     return found
 
@@ -62,6 +77,8 @@ def crawl(seed=SEED_URL, max_pages=None):
 
         # Queue up any new links
         for link in extract_links(html, url, allowed_domain):
+            if any(link.rstrip("/").endswith(s.rstrip("/")) for s in SKIP_SUFFIXES):
+              continue
             if link not in seen:
                 queue.append(link)
 
