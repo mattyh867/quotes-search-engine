@@ -1,0 +1,95 @@
+import sys
+import time
+from collections import deque
+from urllib.parse import urljoin, urlparse
+
+import requests
+from bs4 import BeautifulSoup
+
+
+SEED_URL = "https://quotes.toscrape.com/"
+POLITENESS_DELAY = 6
+REQUEST_TIMEOUT = 15
+USER_AGENT = "COMP3011-Crawler/0.1"
+
+
+def fetch_page(url):
+    headers = {"User-Agent": USER_AGENT}
+    try:
+        r = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        r.raise_for_status()
+        return r.text
+    except requests.RequestException as e:
+        # Don't crash the whole crawl just because one page is broken
+        print(f"  ! error fetching {url}: {e}")
+        return None
+
+
+def extract_links(html, base_url, allowed_domain):
+    soup = BeautifulSoup(html, "html.parser")
+    found = set()
+
+    for tag in soup.find_all("a", href=True):
+        # Resolve relative paths like "/page/2/" against the current page
+        url = urljoin(base_url, tag["href"])
+        # Drop the fragment - "/page/2/#top" is the same page as "/page/2/"
+        url = url.split("#", 1)[0]
+
+        if urlparse(url).netloc == allowed_domain:
+            found.add(url)
+
+    return found
+
+
+def crawl(seed=SEED_URL, max_pages=None):
+    """
+    BFS through the site starting at `seed`. Returns {url: html}.
+    """
+    domain = urlparse(seed).netloc
+    queue = deque([seed])
+    visited = {seed}
+    pages = {}
+
+    while queue:
+        url = queue.popleft()
+
+        print(f"[{len(pages) + 1}] fetching {url}")
+        html = fetch_page(url)
+        if html is None:
+            continue
+
+        pages[url] = html
+
+        # Find new links and add them to the queue
+        new_count = 0
+        for link in extract_links(html, url, domain):
+            if link not in visited:
+                visited.add(link)
+                queue.append(link)
+                new_count += 1
+
+        print(f"    queue={len(queue)}  new={new_count}  pages={len(pages)}")
+
+        if max_pages is not None and len(pages) >= max_pages:
+            print(f"reached max_pages={max_pages}, stopping")
+            break
+
+        if queue:
+            time.sleep(POLITENESS_DELAY)
+
+    return pages
+
+
+if __name__ == "__main__":
+    limit = None
+    if len(sys.argv) > 1:
+        try:
+            limit = int(sys.argv[1])
+        except ValueError:
+            print(f"Usage: python crawler.py [max_pages]")
+            sys.exit(1)
+
+    results = crawl(max_pages=limit)
+    print(f"\nFinished. Crawled {len(results)} pages.")
+    for u in results:
+        print(" ", u)
