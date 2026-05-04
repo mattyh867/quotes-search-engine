@@ -1,16 +1,17 @@
-import sys
 import time
-from collections import deque
 from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
+
+from indexer import add_page, make_index
 
 
 SEED_URL = "https://quotes.toscrape.com/"
 POLITENESS_DELAY = 6
 REQUEST_TIMEOUT = 15
 USER_AGENT = "COMP3011-Crawler/0.1"
+SKIP_SUFFIXES = ("/login", "/logout")
 
 
 def fetch_page(url):
@@ -20,9 +21,16 @@ def fetch_page(url):
         r.raise_for_status()
         return r.text
     except requests.RequestException as e:
-        # Don't crash the whole crawl just because one page is broken
         print(f"  ! error fetching {url}: {e}")
         return None
+
+
+def normalise(url):
+    """Collapse trivially equivalent URL variants."""
+    # /tag/foo/page/1/ is the same content as /tag/foo/
+    if url.endswith("/page/1/"):
+        url = url[: -len("page/1/")]
+    return url
 
 
 def extract_links(html, base_url, allowed_domain):
@@ -30,66 +38,60 @@ def extract_links(html, base_url, allowed_domain):
     found = set()
 
     for tag in soup.find_all("a", href=True):
-        # Resolve relative paths like "/page/2/" against the current page
-        url = urljoin(base_url, tag["href"])
-        # Drop the fragment - "/page/2/#top" is the same page as "/page/2/"
-        url = url.split("#", 1)[0]
+        url = urljoin(base_url, tag["href"]).split("#", 1)[0]
+        url = normalise(url)
 
-        if urlparse(url).netloc == allowed_domain:
-            found.add(url)
+        if urlparse(url).netloc != allowed_domain:
+            continue
+        if any(url.rstrip("/").endswith(s) for s in SKIP_SUFFIXES):
+            continue
+
+        found.add(url)
 
     return found
 
 
 def crawl(seed=SEED_URL, max_pages=None):
-    """
-    BFS through the site starting at `seed`. Returns {url: html}.
-    """
-    domain = urlparse(seed).netloc
-    queue = deque([seed])
-    visited = {seed}
-    pages = {}
+    index = make_index()
+    allowed_domain = urlparse(seed).netloc
+    queue = [seed]
+    seen = set()
 
     while queue:
-        url = queue.popleft()
+        url = queue.pop(0)
+        if url in seen:
+            continue
+        seen.add(url)
 
-        print(f"[{len(pages) + 1}] fetching {url}")
         html = fetch_page(url)
         if html is None:
+            time.sleep(POLITENESS_DELAY)
             continue
 
-        pages[url] = html
+        # Index the page text
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+            add_page(index, url, soup.get_text(separator=" "))
+        except Exception as e:
+            print(f"  ! index error on {url}: {e}")
 
-        # Find new links and add them to the queue
-        new_count = 0
-        for link in extract_links(html, url, domain):
-            if link not in visited:
-                visited.add(link)
+        # Queue up any new links
+        for link in extract_links(html, url, allowed_domain):
+            if any(link.rstrip("/").endswith(s.rstrip("/")) for s in SKIP_SUFFIXES):
+              continue
+            if link not in seen:
                 queue.append(link)
-                new_count += 1
 
-        print(f"    queue={len(queue)}  new={new_count}  pages={len(pages)}")
+        print(f"[{len(seen)}] indexed {url}")
 
-        if max_pages is not None and len(pages) >= max_pages:
-            print(f"reached max_pages={max_pages}, stopping")
+        if max_pages and len(seen) >= max_pages:
             break
 
-        if queue:
-            time.sleep(POLITENESS_DELAY)
+        time.sleep(POLITENESS_DELAY)
 
-    return pages
+    return index
 
 
 if __name__ == "__main__":
-    limit = None
-    if len(sys.argv) > 1:
-        try:
-            limit = int(sys.argv[1])
-        except ValueError:
-            print(f"Usage: python crawler.py [max_pages]")
-            sys.exit(1)
-
-    results = crawl(max_pages=limit)
-    print(f"\nFinished. Crawled {len(results)} pages.")
-    for u in results:
-        print(" ", u)
+    idx = crawl(max_pages=5)
+    print(f"\nFinished. {len(idx)} unique terms in index.")
