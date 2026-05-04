@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Generated index + crawl data
+data/*.json
+
+# OS / editor noise
+.DS_Store
+.vscode/
+.idea/
