@@ -33,7 +33,7 @@ that hit it would be:
 
 Instead, `requests.get` and `crawler.fetch_page` are patched to return
 canned HTML for known URLs. `time.sleep` is also patched so the politeness
-delay doesn't slow tests down — but assertions still verify it would have
+delay doesn't slow tests down - but assertions still verify it would have
 been called with the right value in production.
 
 ## Edge cases covered
@@ -64,7 +64,7 @@ and where:
 | Apostrophe words (e.g. "don't") | `test_search.py` | `test_find_splits_apostrophe_words` |
 | One missing word in multi-word query | `test_search.py` | `test_find_multi_word_one_missing_returns_empty` |
 
-## What we deliberately don't test
+## What we didn't test
 
 A few things were considered and consciously left out:
 
@@ -79,7 +79,18 @@ A few things were considered and consciously left out:
   `indexer.py`. These exist for ad-hoc manual testing during development;
   they're not part of the public interface.
 
-These gaps are visible in the coverage report below.
+These gaps are visible in the coverage report.
+
+## Coverage Report
+
+Name             Stmts   Miss  Cover   Missing
+----------------------------------------------
+src/crawler.py      67      6    91%   63, 75-76, 81, 96-97
+src/indexer.py      36      8    78%   43-52
+src/main.py         66     66     0%   1-100
+src/search.py       38      1    97%   23
+----------------------------------------------
+TOTAL              207     81    61%
 
 ## Running the tests
 
