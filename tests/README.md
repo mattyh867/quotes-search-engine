@@ -83,14 +83,16 @@ These gaps are visible in the coverage report.
 
 ## Coverage Report
 
-Name             Stmts   Miss  Cover   Missing
-----------------------------------------------
-src/crawler.py      67      6    91%   63, 75-76, 81, 96-97
-src/indexer.py      36      8    78%   43-52
-src/main.py         66     66     0%   1-100
-src/search.py       38      1    97%   23
-----------------------------------------------
-TOTAL              207     81    61%
+Coverage is measured with `pytest-cov` (run via
+`pytest --cov=src --cov-report=term-missing`). Current line coverage:
+
+| Module | Statements | Missed | Coverage | Notes |
+|---|---|---|---|---|
+| `src/crawler.py` | 67 | 6 | **91%** | Misses are error-path prints and the `__main__` demo block |
+| `src/indexer.py` | 36 | 8 | **78%** | Misses are entirely the `__main__` demo block (lines 43–52) |
+| `src/search.py` | 38 | 1 | **97%** | One uncovered branch in `print_word` |
+| `src/main.py` | 66 | 66 | **0%** | CLI wrapper, see "What we didn't test" |
+| **Total** | **207** | **81** | **61%** | |
 
 ## Running the tests
 
