@@ -3,7 +3,7 @@ import sys
 
 from crawler import crawl
 from indexer import load_index, save_index
-from search import print_word
+from search import print_word, find
 
 
 DEFAULT_INDEX_PATH = "data/index.json"
@@ -39,6 +39,19 @@ def cmd_print(args):
     print_word(index, args.word)
 
 
+def cmd_find(args):
+    index = _load_or_exit(args.input)
+    results = find(index, args.query)
+
+    if not results:
+        print("No matching pages.")
+        return
+
+    print(f"{len(results)} page(s) found:")
+    for url in results:
+        print(f"  {url}")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="search-tool",
@@ -63,6 +76,12 @@ def build_parser():
     p_print.add_argument("word", help="The word to look up.")
     p_print.add_argument("--input", default=DEFAULT_INDEX_PATH, help="Path to index JSON.")
     p_print.set_defaults(func=cmd_print)
+
+    # find
+    p_find = sub.add_parser("find", help="Find pages containing the given words.")
+    p_find.add_argument("query", nargs="+", help="One or more words to search for.")
+    p_find.add_argument("--input", default=DEFAULT_INDEX_PATH, help="Path to index JSON.")
+    p_find.set_defaults(func=cmd_find)
 
     return parser
 
