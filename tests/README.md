@@ -7,10 +7,10 @@ what's tested, why, how to run it, and what's not covered.
 
 Tests are organised into four files, each focused on a single module:
 
-- `test_crawler.py` — the crawler (link extraction, fetching, the crawl loop)
-- `test_indexer.py` — tokenisation, the inverted index, and persistence
-- `test_search.py` — the `find` and `print_word` functions
-- `test_integration.py` — end-to-end tests wiring the real components together
+- `test_crawler.py` - the crawler (link extraction, fetching, the crawl loop)
+- `test_indexer.py` - tokenisation, the inverted index, and persistence
+- `test_search.py` - the `find` and `print_word` functions
+- `test_integration.py` - end-to-end tests wiring the real components together
 
 The split between unit and integration tests is deliberate. Unit tests mock
 their dependencies and assert on isolated behaviour, which makes failures
@@ -24,11 +24,11 @@ up in unit tests.
 The target site (`quotes.toscrape.com`) is a real third-party service. Tests
 that hit it would be:
 
-- **Slow** — the politeness window alone is 6 seconds per page, so even a
+- **Slow** - the politeness window alone is 6 seconds per page, so even a
   small crawl would take half a minute per test run.
-- **Flaky** — network failures, rate limiting, or the site going down would
+- **Flaky** - network failures, rate limiting, or the site going down would
   cause unrelated test failures.
-- **Rude** — running the full test suite repeatedly during development
+- **Rude** - running the full test suite repeatedly during development
   would hammer a site that exists for educational scraping, not load testing.
 
 Instead, `requests.get` and `crawler.fetch_page` are patched to return
