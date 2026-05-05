@@ -21,7 +21,7 @@ def fetch_page(url):
         r.raise_for_status()
         return r.text
     except requests.RequestException as e:
-        print(f"  ! error fetching {url}: {e}")
+        print(f"! error fetching {url}: {e}")
         return None
 
 
@@ -73,7 +73,7 @@ def crawl(seed=SEED_URL, max_pages=None):
             soup = BeautifulSoup(html, "html.parser")
             add_page(index, url, soup.get_text(separator=" "))
         except Exception as e:
-            print(f"  ! index error on {url}: {e}")
+            print(f"! index error on {url}: {e}")
 
         # Queue up any new links
         for link in extract_links(html, url, allowed_domain):

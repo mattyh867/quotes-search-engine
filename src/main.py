@@ -3,6 +3,7 @@ import sys
 
 from crawler import crawl
 from indexer import load_index, save_index
+from search import print_word
 
 
 DEFAULT_INDEX_PATH = "data/index.json"
@@ -16,18 +17,26 @@ def cmd_build(args):
     print(f"Done. {len(index)} unique terms written to {args.output}")
 
 
-def cmd_load(args):
+def _load_or_exit(path):
     try:
-        index = load_index(args.input)
+        return load_index(path)
     except FileNotFoundError:
-        print(f"No index found at {args.input}. Run 'build' first.")
+        print(f"No index found at {path}. Run 'build' first.")
         sys.exit(1)
 
+
+def cmd_load(args):
+    index = _load_or_exit(args.input)
     total_postings = sum(len(postings) for postings in index.values())
     print(f"Loaded index from {args.input}")
     print(f"  {len(index)} unique terms")
     print(f"  {total_postings} term-document postings")
     return index
+
+
+def cmd_print(args):
+    index = _load_or_exit(args.input)
+    print_word(index, args.word)
 
 
 def build_parser():
@@ -48,6 +57,12 @@ def build_parser():
     p_load = sub.add_parser("load", help="Load a saved index and show stats.")
     p_load.add_argument("--input", default=DEFAULT_INDEX_PATH, help="Path to index JSON.")
     p_load.set_defaults(func=cmd_load)
+
+    # print
+    p_print = sub.add_parser("print", help="Print the inverted index entry for a word.")
+    p_print.add_argument("word", help="The word to look up.")
+    p_print.add_argument("--input", default=DEFAULT_INDEX_PATH, help="Path to index JSON.")
+    p_print.set_defaults(func=cmd_print)
 
     return parser
 
