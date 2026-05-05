@@ -16,15 +16,26 @@ def print_word(index, word):
 
 
 def find(index, query):
-    """Return URLs of pages containing all words in the query."""
+    """Return URLs of pages containing all words in the query.
+
+    Results are ranked by total frequency of the query terms across the page,
+    most-frequent first. Ties broken alphabetically by URL.
+    """
     if not query:
         return []
 
-    matching_sets = []
+    query = [w.lower() for w in query]
+    postings_per_word = []
+
     for word in query:
-        postings = index.get(word.lower())
+        postings = index.get(word)
         if not postings:
             return []
-        matching_sets.append(set(postings.keys()))
+        postings_per_word.append(postings)
 
-    return sorted(set.intersection(*matching_sets))
+    common_urls = set.intersection(*(set(p.keys()) for p in postings_per_word))
+
+    def total_freq(url):
+        return sum(p[url]["freq"] for p in postings_per_word)
+
+    return sorted(common_urls, key=lambda u: (-total_freq(u), u))
