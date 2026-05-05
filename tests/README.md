@@ -5,11 +5,12 @@ what's tested, why, how to run it, and what's not covered.
 
 ## Approach
 
-Tests are organised into four files, each focused on a single module:
+Tests are organised into five files, each focused on a single module:
 
 - `test_crawler.py` - the crawler (link extraction, fetching, the crawl loop)
 - `test_indexer.py` - tokenisation, the inverted index, and persistence
 - `test_search.py` - the `find` and `print_word` functions
+- `test_main.py` - the CLI layer (argparse wiring and command handlers)
 - `test_integration.py` - end-to-end tests wiring the real components together
 
 The split between unit and integration tests is deliberate. Unit tests mock
@@ -68,10 +69,6 @@ and where:
 
 A few things were considered and consciously left out:
 
-- **The argparse CLI layer in `main.py`.** The handlers are thin wrappers
-  that delegate to already-tested functions; testing argparse itself is
-  testing the standard library. The cost of mocking `sys.argv` and
-  capturing exits outweighed the marginal coverage gain.
 - **Performance.** The brief specifies correctness, not throughput. A
   performance test would be flaky (depends on the runner's speed) and
   doesn't earn any rubric marks.
@@ -91,8 +88,8 @@ Coverage is measured with `pytest-cov` (run via
 | `src/crawler.py` | 67 | 6 | **91%** | Misses are error-path prints and the `__main__` demo block |
 | `src/indexer.py` | 36 | 8 | **78%** | Misses are entirely the `__main__` demo block (lines 43–52) |
 | `src/search.py` | 38 | 1 | **97%** | One uncovered branch in `print_word` |
-| `src/main.py` | 66 | 66 | **0%** | CLI wrapper, see "What we didn't test" |
-| **Total** | **207** | **81** | **61%** | |
+| `src/main.py` | 66 | 1 | **98%** | One uncovered line in the dispatch entry point |
+| **Total** | **207** | **16** | **92%** | |
 
 ## Running the tests
 
