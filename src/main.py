@@ -41,7 +41,11 @@ def cmd_print(args):
 
 def cmd_find(args):
     index = _load_or_exit(args.input)
-    results = find(index, args.query)
+    results, normalised = find(index, args.query)
+
+    lowered = [w.lower() for w in args.query]
+    if normalised and normalised != lowered:
+        print(f"(searching for: {' '.join(normalised)})")
 
     if not results:
         print("No matching pages.")
