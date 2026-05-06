@@ -1,3 +1,11 @@
+"""
+Web crawler for the search tool.
+ 
+Does a breadth-first crawl of quotes.toscrape.com starting from a seed
+URL and feeds each page's text into the inverted index as it goes, with a 6
+second politeness delay between requests.
+"""
+
 import time
 from urllib.parse import urljoin, urlparse
 
@@ -11,7 +19,7 @@ SEED_URL = "https://quotes.toscrape.com/"
 POLITENESS_DELAY = 6
 REQUEST_TIMEOUT = 15
 USER_AGENT = "COMP3011-Crawler/0.1"
-SKIP_SUFFIXES = ("/login", "/logout")
+SKIP_SUFFIXES = ("/login", "/logout") # Pages we don't want to follow
 
 
 def fetch_page(url):

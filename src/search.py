@@ -1,3 +1,13 @@
+"""
+Query handling for the search tool.
+ 
+'print_word' shows the inverted-index entry for a single term, and
+'find' runs an AND-style multi-word query and ranks the matching pages
+by total frequency across the query terms. Both apply the indexer's
+tokeniser to incoming queries so the search side and the indexing side
+agree on what counts as a token.
+"""
+
 from indexer import tokenise
 
 

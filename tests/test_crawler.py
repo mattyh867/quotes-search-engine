@@ -134,3 +134,94 @@ def test_crawl_respects_politeness_delay():
     for call in mock_sleep.call_args_list:
         delay = call.args[0]
         assert delay >= crawler.POLITENESS_DELAY
+
+
+# ---------- additional edge cases ----------
+
+def test_extract_links_handles_malformed_html():
+    broken = "<html><body><a href='/ok'>fine</a><a href=>nope</a><p>unclosed"
+    links = extract_links(broken, "https://quotes.toscrape.com/", "quotes.toscrape.com")
+    # the good link still comes through; the broken one is just skipped
+    assert "https://quotes.toscrape.com/ok" in links
+
+
+def test_extract_links_returns_empty_for_no_anchors():
+    html = "<html><body><p>No links here, just text.</p></body></html>"
+    links = extract_links(html, "https://quotes.toscrape.com/", "quotes.toscrape.com")
+    assert links == set()
+
+
+def test_crawl_continues_when_a_fetch_fails():
+    """If one page 404s mid-crawl, the loop should keep going, not die."""
+    pages = {
+        "https://quotes.toscrape.com/": _html_with_links("/a", "/b"),
+        "https://quotes.toscrape.com/a": None,  # simulates a failed fetch
+        "https://quotes.toscrape.com/b": "<html><body>fine</body></html>",
+    }
+
+    def fake_fetch(url):
+        return pages.get(url)
+
+    with patch("crawler.fetch_page", side_effect=fake_fetch), \
+         patch("crawler.time.sleep"):
+        index = crawl(max_pages=5)
+
+    indexed_urls = set()
+    for postings in index.values():
+        indexed_urls.update(postings.keys())
+
+    # /a failed but /b should still be in the index
+    assert "https://quotes.toscrape.com/b" in indexed_urls
+    assert "https://quotes.toscrape.com/a" not in indexed_urls
+
+
+def test_crawl_stays_on_allowed_domain():
+    """External links in real page content shouldn't pull us off-site."""
+    seed_html = """
+    <html><body>
+      <a href="/local">internal</a>
+      <a href="https://evil.example.com/page">external</a>
+    </body></html>
+    """
+    pages = {
+        "https://quotes.toscrape.com/": seed_html,
+        "https://quotes.toscrape.com/local": "<html></html>",
+    }
+
+    fetch_calls = []
+
+    def fake_fetch(url):
+        fetch_calls.append(url)
+        return pages.get(url, "<html></html>")
+
+    with patch("crawler.fetch_page", side_effect=fake_fetch), \
+         patch("crawler.time.sleep"):
+        crawl(max_pages=10)
+
+    assert all("evil.example.com" not in url for url in fetch_calls)
+
+
+def test_normalise_prevents_duplicate_page_one_crawls():
+    """/tag/love/ and /tag/love/page/1/ are the same content - only one fetch."""
+    pages = {
+        "https://quotes.toscrape.com/": (
+            '<html><body>'
+            '<a href="/tag/love/">love</a>'
+            '<a href="/tag/love/page/1/">love p1</a>'
+            '</body></html>'
+        ),
+        "https://quotes.toscrape.com/tag/love/": "<html></html>",
+    }
+
+    fetch_calls = []
+
+    def fake_fetch(url):
+        fetch_calls.append(url)
+        return pages.get(url, "<html></html>")
+
+    with patch("crawler.fetch_page", side_effect=fake_fetch), \
+         patch("crawler.time.sleep"):
+        crawl(max_pages=10)
+
+    # /tag/love/page/1/ should never appear as a fetch - normalise() folds it
+    assert not any(url.endswith("/page/1/") for url in fetch_calls)

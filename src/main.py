@@ -1,3 +1,17 @@
+"""
+Command-line entry point for the search tool.
+ 
+Four subcommands:
+ 
+    build - crawl the seed site and write an index file to disk
+    load - load an existing index and print summary stats
+    print - show the index entry for a single word
+    find - return pages matching one or more query words
+ 
+All read commands accept '--input' to point at a non-default index
+file; 'build' accepts '--output' for the same reason.
+"""
+
 import argparse
 import sys
 
