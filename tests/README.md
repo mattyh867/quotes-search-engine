@@ -86,10 +86,10 @@ Coverage is measured with `pytest-cov` (run via
 | Module | Statements | Missed | Coverage | Notes |
 |---|---|---|---|---|
 | `src/crawler.py` | 67 | 6 | **91%** | Misses are error-path prints and the `__main__` demo block |
-| `src/indexer.py` | 36 | 8 | **78%** | Misses are entirely the `__main__` demo block (lines 43–52) |
-| `src/search.py` | 38 | 1 | **97%** | One uncovered branch in `print_word` |
+| `src/indexer.py` | 46 | 9 | **80%** | Misses are entirely the `__main__` demo block (lines 43–52) |
+| `src/search.py` | 39 | 1 | **97%** | One uncovered branch in `print_word` |
 | `src/main.py` | 66 | 1 | **98%** | One uncovered line in the dispatch entry point |
-| **Total** | **207** | **16** | **92%** | |
+| **Total** | **218** | **17** | **92%** | |
 
 ## Running the tests
 

@@ -155,9 +155,11 @@ the crawler would index the same content twice.
 nothing useful to index there, and visiting `/logout` would throw away
 any session state for the rest of the crawl.
 
-**Ranking in `find`.** Pages are sorted by the sum of query-term
-frequencies, ties broken alphabetically by URL. Predictable ordering
-without needing TF-IDF (a natural next step given more time).
+**Ranking in `find`.** Pages are sorted by sum of TF-IDF scores across
+the query terms (`tf × log(N/df)`), ties broken alphabetically by URL.
+This rewards pages where rare query terms appear often, rather than
+pages that just happen to be wordy. IDF is computed on the fly from
+the loaded index - no separate file format change needed.
 
 **Index format.** JSON, three levels deep:
 `{term: {url: {"freq": int, "positions": [int]}}}`. Storing positions
