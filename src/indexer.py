@@ -17,6 +17,7 @@ import re
 import math
 from collections import defaultdict
 
+Index = dict[str, dict[str, dict]]
 
 def tokenise(text):
     text = text.lower()
