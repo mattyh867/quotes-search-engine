@@ -1,3 +1,16 @@
+"""
+Inverted index for the search tool.
+ 
+The index is a three-level dict::
+ 
+    {term: {url: {"freq": int, "positions": list[int]}}}
+ 
+For each lowercased token we store which URLs contain it, and inside
+each URL the total frequency on that page plus the 0-indexed positions
+of every occurrence in that page's token stream. The whole thing
+serialises to JSON so it can be saved between runs.
+"""
+
 import json
 import os
 import re
