@@ -14,8 +14,10 @@ serialises to JSON so it can be saved between runs.
 import json
 import os
 import re
+import math
 from collections import defaultdict
 
+Index = dict[str, dict[str, dict]]
 
 def tokenise(text):
     text = text.lower()
@@ -51,6 +53,23 @@ def load_index(path):
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
     
+
+def compute_idf(index: Index) -> dict[str, float]:
+    """Return {term: idf} for every term in the index using log(N / df)."""
+    # N = total number of unique documents across the whole index
+    all_urls = set()
+    for postings in index.values():
+        all_urls.update(postings.keys())
+    n_docs = len(all_urls)
+
+    if n_docs == 0:
+        return {}
+
+    return {
+        term: math.log(n_docs / len(postings))
+        for term, postings in index.items()
+    }
+
 
 if __name__ == "__main__":
     idx = make_index()

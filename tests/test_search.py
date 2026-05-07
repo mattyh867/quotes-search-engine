@@ -17,6 +17,9 @@ def _sample_index():
         "love": {
             "http://example.com/b": {"freq": 5, "positions": [0, 3, 6, 9, 12]},
         },
+        "world": {
+            "http://example.com/d": {"freq": 1, "positions": [0]},
+        },
     }
 
 
@@ -60,11 +63,11 @@ def test_find_multi_word_returns_intersection_not_union():
     assert "http://example.com/b" not in results
 
 
-def test_find_multi_word_ranked_by_combined_frequency():
+def test_find_multi_word_ranked_by_if_idf():
     index = _sample_index()
     results, _ = find(index, ["good", "friends"])
-    # /a: good=3 + friends=1 = 4
-    # /c: good=2 + friends=1 = 3
+    # /a has higher tf for "good" (3 vs 2), and both pages tie on
+    # "friends" (1 each). TF-IDF preserves that ordering.
     assert results == ["http://example.com/a", "http://example.com/c"]
 
 
@@ -170,3 +173,26 @@ def test_print_word_punctuation_only_handled_gracefully(capsys):
     out = capsys.readouterr().out
     # whatever the message, it shouldn't crash and shouldn't claim to find anything
     assert "http://example.com" not in out
+
+
+def test_find_ranks_rare_term_higher_than_common_term():
+    """TF-IDF should beat raw frequency: pages where the rare query
+    term dominates rank above pages where the common term dominates,
+    even if the latter has more total matches.
+    """
+    from indexer import make_index, add_page
+
+    idx = make_index()
+
+    # 'rare' appears in only 2 docs out of 10 = high IDF.
+    # 'common' appears in all 10 → IDF = log(10/10) = 0.
+    add_page(idx, "url_a", "rare " + "common " * 100)   # rare ×1, common ×100
+    add_page(idx, "url_b", "rare " * 5 + "common")      # rare ×5, common ×1
+    for i in range(8):
+        add_page(idx, f"url_filler_{i}", "common")
+
+    results, _ = find(idx, ["rare", "common"])
+
+    # Both A and B match. With raw frequency A wins (101 vs 6).
+    # With TF-IDF B wins because rare has all the IDF weight.
+    assert results == ["url_b", "url_a"]

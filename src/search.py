@@ -8,7 +8,7 @@ tokeniser to incoming queries so the search side and the indexing side
 agree on what counts as a token.
 """
 
-from indexer import tokenise
+from indexer import tokenise, Index, compute_idf
 
 
 def _normalise_query(words):
@@ -44,8 +44,14 @@ def print_word(index, word):
         print(f"    freq={info['freq']}, positions={info.get('positions', [])}")
 
 
-def find(index, query):
-    """Return (urls, normalised_query) for pages containing all query words."""
+def find(index: Index, query: list[str]) -> tuple[list[str], list[str]]:
+    """
+    Find pages containing every word in 'query', ranked by TF-IDF.
+
+    Returns (ranked_urls, normalised_query). The normalised query is
+    handed back so the caller can show it to the user when it differs
+    from what they typed (e.g. "Good!" → "good").
+    """
     query = _normalise_query(query)
     if not query:
         return [], []
@@ -55,12 +61,19 @@ def find(index, query):
         postings = index.get(word)
         if not postings:
             return [], query
-        postings_per_word.append(postings)
+        postings_per_word.append((word, postings))
 
-    common_urls = set.intersection(*(set(p.keys()) for p in postings_per_word))
+    common_urls = set.intersection(*(set(p.keys()) for _, p in postings_per_word))
 
-    def total_freq(url):
-        return sum(p[url]["freq"] for p in postings_per_word)
+    # Compute IDF once for this query rather than per-page.
+    idf = compute_idf(index)
 
-    ranked = sorted(common_urls, key=lambda u: (-total_freq(u), u))
+    def tf_idf_score(url: str) -> float:
+        return sum(
+            postings[url]["freq"] * idf.get(word, 0.0)
+            for word, postings in postings_per_word
+        )
+
+    # Highest TF-IDF first, then alphabeticalally by URL as a tiebreaker
+    ranked = sorted(common_urls, key=lambda u: (-tf_idf_score(u), u))
     return ranked, query
